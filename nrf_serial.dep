@@ -314,6 +314,10 @@
           <name>ICCSTM8</name>
           <file> 21 66 45 39 40 33 30 46 44 32 29 26 28 27 31 22 25 23 15 6</file>
         </tool>
+        <tool>
+          <name>BICOMP</name>
+          <file> 21 66 45 39 40 33 30 46 44 32 29 26 28 27 31 22 25 23 15 6</file>
+        </tool>
       </inputs>
     </file>
     <file>
