@@ -250,6 +250,7 @@
           <name>CCIncludePath2</name>
           <state>$PROJ_DIR$\</state>
           <state>$PROJ_DIR$\STM8S_StdPeriph_Driver\inc</state>
+          <state>$PROJ_DIR$\nrf24l01_lib</state>
         </option>
         <option>
           <name>CCStdIncCheck</name>
@@ -1569,6 +1570,15 @@
       <data/>
     </settings>
   </configuration>
+  <group>
+    <name>nrf24l01_lib</name>
+    <file>
+      <name>$PROJ_DIR$\nrf24l01_lib\nrf24l01.c</name>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\nrf24l01_lib\nrf24l01.h</name>
+    </file>
+  </group>
   <group>
     <name>STM8S_StdPeriph_Driver</name>
     <group>
