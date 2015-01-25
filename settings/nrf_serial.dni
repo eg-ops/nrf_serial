@@ -33,7 +33,7 @@ TypeViolation=1
 UnspecRange=1
 ActionState=1
 [DebugChecksum]
-Checksum=-2091415352
+Checksum=33847260
 [Trace1]
 Enabled=0
 ShowSource=1
@@ -63,8 +63,9 @@ GraphEnabled=0
 ShowTimeLog=1
 ShowTimeSum=1
 [Breakpoints]
-Bp0=_ "STD_CODE" "{$PROJ_DIR$\main.c}.55.14" 1 0 0 0 "" 0 ""
-Count=1
+Bp0=_ "STD_CODE" "{$PROJ_DIR$\main.c}.101.14" 1 0 0 0 "" 0 ""
+Bp1=_ "STD_CODE" "{$PROJ_DIR$\main.c}.58.5" 1 0 0 0 "" 0 ""
+Count=2
 [Log file]
 LoggingEnabled=_ 0
 LogFile=_ ""
