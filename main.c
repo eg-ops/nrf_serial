@@ -3,6 +3,7 @@
 #include "stm8s_gpio.h"
 #include "stm8s_spi.h"
 #include "stm8s_exti.h"
+#include "stm8s_uart1.h"
 #include "nrf24l01.h"
 
 
@@ -47,8 +48,8 @@ void nrf24l01p_ce_low(){ GPIO_WriteLow(GPIOC, CE); }
 void nrf24l01p_csn_high(){ GPIO_WriteHigh(GPIOC, CSN); }
 
 void nrf24l01p_csn_low(){ GPIO_WriteLow(GPIOC, CSN); }
-void nrf24l01p_irq_enable(){ enableInterrupts(); }
-void nrf24l01p_irq_disable(){ disableInterrupts(); }
+void nrf24l01p_irq_enable(){ /*enableInterrupts();*/ }
+void nrf24l01p_irq_disable(){ /*disableInterrupts();*/ }
 
 
 
@@ -57,6 +58,26 @@ INTERRUPT_HANDLER(EXTI_PORTD_IRQHandler, 6)
 {
     GPIO_WriteReverse(GPIOD, (GPIO_PIN_4 ) );
     
+    uint8_t status = 0, fifo_status = 0;
+    status = nrf24l01p_read(FIFO_STATUS, &fifo_status, 1);
+    
+    if ((fifo_status & (1 << RX_FIFO_EMPTY)) == 0){
+      int pipe = (status  >> RX_P_NO) & 7;
+    
+      uint8_t buff[32] = {0};
+      uint8_t pipe_size = get_dyn_packet_size(); // sizeof(buff); // 
+
+       nrf24l01p_read(R_RX_PAYLOAD, buff, pipe_size);
+       
+       for (int i = 0; i < pipe_size; i++){
+        UART1_SendData8(buff[i]);
+        while (UART1_GetFlagStatus(UART1_FLAG_TXE) == RESET);
+       }    
+    }
+    
+    nrf24l01p_write_byte(W_REGISTER | STATUS, status & 0x70); // clear status
+    nrf24l01p_read_reg(STATUS, &status, 1);
+    status++;
     
 }
 
@@ -64,7 +85,12 @@ INTERRUPT_HANDLER(EXTI_PORTD_IRQHandler, 6)
 int main( void )
 {
   CLK_DeInit();
-  CLK_ClockSwitchConfig(CLK_SWITCHMODE_AUTO, CLK_SOURCE_HSE, DISABLE, CLK_CURRENTCLOCKSTATE_DISABLE);
+  CLK_ClockSwitchConfig(CLK_SWITCHMODE_AUTO, CLK_SOURCE_HSI, DISABLE, CLK_CURRENTCLOCKSTATE_DISABLE);
+  //CLK_ClockSwitchConfig(CLK_SWITCHMODE_AUTO, CLK_SOURCE_HSE, DISABLE, CLK_CURRENTCLOCKSTATE_DISABLE);
+  
+  CLK_PeripheralClockConfig(CLK_PERIPHERAL_SPI, ENABLE);
+  CLK_PeripheralClockConfig(CLK_PERIPHERAL_UART1, ENABLE);
+  
   
   GPIO_Init(GPIOD, GPIO_PIN_4 | GPIO_PIN_3, GPIO_MODE_OUT_PP_LOW_FAST);
  
@@ -75,23 +101,48 @@ int main( void )
   GPIO_Init(GPIOC, CE, GPIO_MODE_OUT_PP_LOW_FAST);
   GPIO_Init(GPIOC, SCK, GPIO_MODE_OUT_PP_LOW_FAST);
   
-  GPIO_Init(GPIOD, IRQ, GPIO_MODE_IN_PU_IT);
-  EXTI_SetExtIntSensitivity(EXTI_PORT_GPIOD, EXTI_SENSITIVITY_FALL_ONLY);
+  GPIO_Init(GPIOD, IRQ, GPIO_MODE_IN_FL_IT);
+  EXTI_SetExtIntSensitivity(EXTI_PORT_GPIOD, EXTI_SENSITIVITY_FALL_LOW);
+  
+  
   
   SPI_DeInit();
   SPI_Init(SPI_FIRSTBIT_MSB, SPI_BAUDRATEPRESCALER_32, SPI_MODE_MASTER, SPI_CLOCKPOLARITY_LOW, SPI_CLOCKPHASE_1EDGE, SPI_DATADIRECTION_2LINES_FULLDUPLEX, SPI_NSS_SOFT, 7);
   SPI_Cmd(ENABLE);
   
+  disableInterrupts();
   
-  set_pipe_size(0,4);
+  nrf24l01p_ce_low();
+  power_down();
+  
+  nrf24l01p_write(FLUSH_TX, 0, 0);
+  nrf24l01p_write(FLUSH_RX, 0, 0);
+  
+  nrf24l01p_write_byte(W_REGISTER | STATUS, nrf24l01p_read_byte(R_REGISTER | STATUS) & 0x70); // clear status
+  
+  
   pipe_enable(0);
+  //dyn_size_enable();
+  set_pipe_size(0,4);
+  pipe_dyn_size_enable(0);
   set_channel(125);
   enable_irqs();
   set_rx_mode();
+  set_1mbps_speed();
+  set_address_width(1);
   //set_tx_mode();
-  
+  delay(2000);
   nrf24l01p_ce_high();
   power_up();
+  
+  
+  
+  GPIO_Init(GPIOD, GPIO_PIN_5, GPIO_MODE_OUT_OD_HIZ_FAST);
+  
+  UART1_DeInit();
+  UART1_Init(115200, UART1_WORDLENGTH_8D, UART1_STOPBITS_1, UART1_PARITY_NO, UART1_SYNCMODE_CLOCK_DISABLE, UART1_MODE_TXRX_ENABLE);
+  UART1_ITConfig(UART1_IT_RXNE_OR, ENABLE);
+  UART1_Cmd(ENABLE);
   
   
   
@@ -111,7 +162,7 @@ int main( void )
   uint8_t data[] = { 0x31, 0x32, 0x33, 0x34};
   
   while(1){
-    delay(20000);
+    delay(2000);
     GPIO_WriteReverse(GPIOD, (GPIO_PIN_3 ) & rand());
    
      //power_up();
